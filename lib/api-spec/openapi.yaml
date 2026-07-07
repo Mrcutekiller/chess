@@ -3,20 +3,28 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ADWA Web3 Chess Arena API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: players
+    description: Player profile operations
+  - name: matches
+    description: Match operations
+  - name: leaderboard
+    description: Leaderboard operations
+  - name: badges
+    description: Badge operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,221 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /players/{address}:
+    get:
+      operationId: getPlayer
+      tags: [players]
+      summary: Get player profile by wallet address
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Player profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+        "404":
+          description: Player not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /players:
+    post:
+      operationId: createPlayer
+      tags: [players]
+      summary: Create or update player profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlayerRequest"
+      responses:
+        "201":
+          description: Player created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+        "200":
+          description: Player updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+
+  /matches:
+    get:
+      operationId: getMatches
+      tags: [matches]
+      summary: Get match history (optionally filtered by player address)
+      parameters:
+        - name: address
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchListResponse"
+    post:
+      operationId: createMatch
+      tags: [matches]
+      summary: Create a new match (called by matchmaking when two players are paired)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMatchRequest"
+      responses:
+        "201":
+          description: Match created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+
+  /matches/{matchId}:
+    get:
+      operationId: getMatch
+      tags: [matches]
+      summary: Get a match by ID (includes full move list for replay)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Match details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /matches/{matchId}/complete:
+    post:
+      operationId: completeMatch
+      tags: [matches]
+      summary: Mark a match as complete, compute result hash, update Elo ratings
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteMatchRequest"
+      responses:
+        "200":
+          description: Match completed with result hash
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchResult"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get global leaderboard
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Global leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+
+  /leaderboard/houses:
+    get:
+      operationId: getHouseLeaderboard
+      tags: [leaderboard]
+      summary: Get per-house aggregate leaderboard
+      responses:
+        "200":
+          description: House standings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HouseLeaderboardResponse"
+
+  /badges/{address}:
+    get:
+      operationId: getPlayerBadges
+      tags: [badges]
+      summary: Get all badges owned by a player
+      parameters:
+        - name: address
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Player badges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadgeListResponse"
+
+  /stats/summary:
+    get:
+      operationId: getStatsSummary
+      tags: [players]
+      summary: Get platform-wide stats (total players, matches today, active games)
+      responses:
+        "200":
+          description: Platform stats summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsSummary"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +257,358 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    House:
+      type: string
+      enum: [shewa, tigray, gojjam, wollo, harar]
+
+    PlayerTitle:
+      type: string
+      enum: [ato, grazmach, fitawrari, dejazmach, ras, negus, negus_negast]
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: string
+        walletAddress:
+          type: string
+        displayName:
+          type: string
+        house:
+          $ref: "#/components/schemas/House"
+        title:
+          $ref: "#/components/schemas/PlayerTitle"
+        eloRating:
+          type: integer
+        activityPoints:
+          type: integer
+        wins:
+          type: integer
+        losses:
+          type: integer
+        draws:
+          type: integer
+        adwaTokens:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - walletAddress
+        - displayName
+        - house
+        - title
+        - eloRating
+        - activityPoints
+        - wins
+        - losses
+        - draws
+        - adwaTokens
+        - createdAt
+
+    CreatePlayerRequest:
+      type: object
+      properties:
+        walletAddress:
+          type: string
+        displayName:
+          type: string
+        house:
+          $ref: "#/components/schemas/House"
+      required:
+        - walletAddress
+        - displayName
+        - house
+
+    MatchMode:
+      type: string
+      enum: [blitz, rapid, classical, casual]
+
+    MatchStatus:
+      type: string
+      enum: [waiting, in_progress, completed, archived]
+
+    MatchOutcome:
+      type: string
+      enum: [white_wins, black_wins, draw, abandoned]
+
+    Move:
+      type: object
+      properties:
+        san:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        timestamp:
+          type: integer
+      required:
+        - san
+        - from
+        - to
+        - timestamp
+
+    Match:
+      type: object
+      properties:
+        id:
+          type: string
+        mode:
+          $ref: "#/components/schemas/MatchMode"
+        status:
+          $ref: "#/components/schemas/MatchStatus"
+        whiteAddress:
+          type: string
+        blackAddress:
+          type: string
+        whiteName:
+          type: string
+        blackName:
+          type: string
+        whiteHouse:
+          $ref: "#/components/schemas/House"
+        blackHouse:
+          $ref: "#/components/schemas/House"
+        whiteElo:
+          type: integer
+        blackElo:
+          type: integer
+        outcome:
+          $ref: "#/components/schemas/MatchOutcome"
+        moves:
+          type: array
+          items:
+            $ref: "#/components/schemas/Move"
+        resultHash:
+          type: string
+        pgn:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - mode
+        - status
+        - whiteAddress
+        - blackAddress
+        - whiteName
+        - blackName
+        - whiteHouse
+        - blackHouse
+        - whiteElo
+        - blackElo
+        - moves
+        - startedAt
+
+    CreateMatchRequest:
+      type: object
+      properties:
+        whiteAddress:
+          type: string
+        blackAddress:
+          type: string
+        mode:
+          $ref: "#/components/schemas/MatchMode"
+      required:
+        - whiteAddress
+        - blackAddress
+        - mode
+
+    CompleteMatchRequest:
+      type: object
+      properties:
+        outcome:
+          $ref: "#/components/schemas/MatchOutcome"
+        moves:
+          type: array
+          items:
+            $ref: "#/components/schemas/Move"
+        pgn:
+          type: string
+      required:
+        - outcome
+        - moves
+
+    MatchResult:
+      type: object
+      properties:
+        matchId:
+          type: string
+        outcome:
+          $ref: "#/components/schemas/MatchOutcome"
+        resultHash:
+          type: string
+        whiteEloDelta:
+          type: integer
+        blackEloDelta:
+          type: integer
+        tokensAwarded:
+          type: integer
+        newBadges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+      required:
+        - matchId
+        - outcome
+        - resultHash
+        - whiteEloDelta
+        - blackEloDelta
+        - tokensAwarded
+        - newBadges
+
+    MatchListResponse:
+      type: object
+      properties:
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+        total:
+          type: integer
+      required:
+        - matches
+        - total
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        player:
+          $ref: "#/components/schemas/Player"
+        winRate:
+          type: number
+      required:
+        - rank
+        - player
+        - winRate
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        total:
+          type: integer
+      required:
+        - entries
+        - total
+
+    HouseStanding:
+      type: object
+      properties:
+        house:
+          $ref: "#/components/schemas/House"
+        houseName:
+          type: string
+        totalWins:
+          type: integer
+        totalMatches:
+          type: integer
+        averageElo:
+          type: integer
+        playerCount:
+          type: integer
+        rank:
+          type: integer
+      required:
+        - house
+        - houseName
+        - totalWins
+        - totalMatches
+        - averageElo
+        - playerCount
+        - rank
+
+    HouseLeaderboardResponse:
+      type: object
+      properties:
+        standings:
+          type: array
+          items:
+            $ref: "#/components/schemas/HouseStanding"
+      required:
+        - standings
+
+    BadgeTier:
+      type: string
+      enum: [bronze, silver, gold, imperial]
+
+    Badge:
+      type: object
+      properties:
+        id:
+          type: string
+        badgeId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        historicalBasis:
+          type: string
+        tier:
+          $ref: "#/components/schemas/BadgeTier"
+        issuedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - badgeId
+        - name
+        - description
+        - historicalBasis
+        - tier
+        - issuedAt
+
+    BadgeListResponse:
+      type: object
+      properties:
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+        total:
+          type: integer
+      required:
+        - badges
+        - total
+
+    StatsSummary:
+      type: object
+      properties:
+        totalPlayers:
+          type: integer
+        totalMatches:
+          type: integer
+        activeGames:
+          type: integer
+        matchesToday:
+          type: integer
+        topPlayer:
+          $ref: "#/components/schemas/Player"
+      required:
+        - totalPlayers
+        - totalMatches
+        - activeGames
+        - matchesToday

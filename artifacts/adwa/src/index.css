@@ -1,0 +1,251 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;800;900&family=Cinzel+Decorative:wght@400;600;700;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Cinzel', serif;
+  --font-display: 'Cinzel Decorative', serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* Default to dark mode given the requirements */
+  --background: 105 11% 5%; /* #0d0f0c */
+  --foreground: 36 33% 94%; /* #f5f0e8 */
+  
+  --border: 120 9% 22%; /* #323d32 */
+  --input: 120 9% 22%;
+  --ring: 44 54% 54%; /* #c9a84c */
+
+  --card: 120 9% 10%; /* #1a1f1a */
+  --card-foreground: 36 33% 94%;
+  --card-border: 120 9% 18%;
+
+  --popover: 120 9% 10%;
+  --popover-foreground: 36 33% 94%;
+  --popover-border: 120 9% 18%;
+
+  --primary: 144 57% 19%; /* #14532d / #1a4a2e approx */
+  --primary-foreground: 36 33% 94%;
+
+  --secondary: 44 54% 54%; /* #c9a84c */
+  --secondary-foreground: 105 11% 5%;
+
+  --muted: 120 9% 15%;
+  --muted-foreground: 33 9% 57%; /* #9a9288 */
+
+  --accent: 44 54% 54%; /* #c9a84c */
+  --accent-foreground: 105 11% 5%;
+
+  --destructive: 0 100% 27%; /* #8b0000 */
+  --destructive-foreground: 36 33% 94%;
+
+  --radius: 0.25rem;
+
+  --adwa-shewa: 44 54% 54%;
+  --adwa-tigray: 0 100% 27%;
+  --adwa-gojjam: 175 60% 25%;
+  --adwa-wollo: 38 80% 45%;
+  --adwa-harar: 20 60% 35%;
+}
+
+.dark {
+  --background: 105 11% 5%;
+  --foreground: 36 33% 94%;
+  
+  --border: 120 9% 22%;
+  --input: 120 9% 22%;
+  --ring: 44 54% 54%;
+
+  --card: 120 9% 10%;
+  --card-foreground: 36 33% 94%;
+  --card-border: 120 9% 18%;
+
+  --popover: 120 9% 10%;
+  --popover-foreground: 36 33% 94%;
+  --popover-border: 120 9% 18%;
+
+  --primary: 144 57% 19%;
+  --primary-foreground: 36 33% 94%;
+
+  --secondary: 44 54% 54%;
+  --secondary-foreground: 105 11% 5%;
+
+  --muted: 120 9% 15%;
+  --muted-foreground: 33 9% 57%;
+
+  --accent: 44 54% 54%;
+  --accent-foreground: 105 11% 5%;
+
+  --destructive: 0 100% 27%;
+  --destructive-foreground: 36 33% 94%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    background-image: radial-gradient(circle at 50% 0%, rgba(201, 168, 76, 0.03) 0%, transparent 50%),
+                      radial-gradient(circle at 100% 100%, rgba(20, 83, 45, 0.05) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.texture-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+.chess-board-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border: 4px solid hsl(var(--card-border));
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+}
+
+.chess-square {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-size: clamp(2rem, 10vw, 4rem);
+  user-select: none;
+}
+
+.chess-square.light {
+  background-color: #d1c7b7; /* Warm parchment */
+  color: #1a1f1a;
+}
+
+.chess-square.dark {
+  background-color: #214030; /* Deep teal/green */
+  color: #f5f0e8;
+}
+
+.chess-square.highlight {
+  position: relative;
+}
+
+.chess-square.highlight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(201, 168, 76, 0.4); /* Gold highlight */
+  pointer-events: none;
+}
+
+.chess-square.valid-move::before {
+  content: '';
+  position: absolute;
+  width: 25%;
+  height: 25%;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.chess-piece {
+  cursor: grab;
+  z-index: 20;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  transition: transform 0.1s;
+}
+
+.chess-piece:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+}
+
+.chess-piece.white {
+  color: #ffffff;
+  -webkit-text-stroke: 1px #000;
+}
+
+.chess-piece.black {
+  color: #0a0c09;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.2);
+}

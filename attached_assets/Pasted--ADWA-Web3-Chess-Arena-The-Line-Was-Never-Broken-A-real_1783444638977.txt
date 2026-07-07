@@ -1,0 +1,231 @@
+# ADWA — Web3 Chess Arena
+### *"ግንባር አልተሰበረም — The Line Was Never Broken"*
+
+A real-time, multiplayer Web3 chess battle platform inspired by the **Battle of Adwa (1896)** — the day the united provinces of Ethiopia stood as one line and handed the Kingdom of Italy the first defeat of a colonial invasion by an African power. ADWA turns that legacy into a living digital arena: players don't relive the invasion, they compete to prove which of Ethiopia's historic provincial houses would have led the charge — all bound by the same tricolor banner.
+
+---
+
+## 1. Concept Overview
+
+| | |
+|---|---|
+| **Game name** | ADWA |
+| **Core genre** | Real-time competitive Web3 chess + reskinned mini-battle games |
+| **Theme** | Ethiopian unity and victory at the Battle of Adwa, 1896 |
+| **Format** | 1v1 ranked/casual matches, tournaments, spectator arenas |
+| **Chain layer** | Player identity, match results, and rewards recorded on-chain (or simulated on-chain for prototype) |
+| **Tagline** | *"Every match is a new Adwa."* |
+
+Unlike a colonizer-vs-colonized framing, ADWA is built entirely around **internal rivalry among Ethiopian regional houses** — the real historical coalition that marched under Emperor Menelik II and Empress Taytu Betul — competing for the honor of having fielded the sharpest tacticians. The invading force never appears as a playable side; it exists only as the *shared enemy* referenced in lore, badges, and seasonal "Siege Events," keeping the tone celebratory and unifying rather than re-staging the war itself.
+
+---
+
+## 2. Historical & Narrative Foundation
+
+**Setting:** The days before and after March 1, 1896. Word has spread across the highlands that the emperor has called every province to arms. Before the armies unite at Adwa, the great houses hold a tournament of wits — chess — to decide who marches at the vanguard.
+
+**Playable Houses (factions / cosmetic skins):**
+
+1. **House of Shewa** — Menelik II's own province. Gold and deep green. Disciplined, central-command playstyle branding.
+2. **House of Tigray** — Ras Alula's homeland. Bronze and crimson. Aggressive, frontier-warfare branding.
+3. **House of Gojjam** — Ras Tekle Haymanot's banner. Deep teal and ivory. Fortress/defensive branding.
+4. **House of Wollo** — Empress Taytu's ancestral house. Amber and obsidian. Cavalry/speed branding.
+5. **House of Harar** — Ras Makonnen's banner. Copper and midnight blue. Flanking/strategy branding.
+
+Each house is a **visual skin set** (board, piece models, victory animation, badge border) layered on identical, fair chess mechanics — cosmetic choice, not pay-to-win.
+
+**Unifying symbol:** the Lion of Judah standard appears at the center of every board; when a match ends, the winning piece "plants" the house banner beside it — a visual nod to the coalition, not conquest of another player.
+
+---
+
+## 3. Core Gameplay
+
+### 3.1 Adwa Chess (flagship mode)
+- Standard FIDE chess rules, real-time clocks (Blitz 3+2, Rapid 10+5, Classical 30+0).
+- **Legendary Mode (optional ranked variant):** each player equips one "General's Ability" tied to their house — a single-use tactical power with real historical framing, balanced and telegraphed to the opponent:
+  - *Shewa – Council's Foresight:* reveal opponent's last-3-move pattern once per game.
+  - *Tigray – Frontier Charge:* one pawn may move 2 squares after turn 10, once.
+  - *Gojjam – Mountain Wall:* one piece gains immunity from capture for one full turn cycle.
+  - *Wollo – Taytu's Vanguard:* swap the positions of two of your own pieces once (no capture).
+  - *Harar – Flanking March:* a knight may make one extra non-capturing move immediately after a normal move.
+- Legendary Mode is strictly opt-in and disabled in the Classical ranked ladder to preserve pure-chess competitive integrity.
+
+### 3.2 Mini-Battles (secondary game modes, satisfies the platform's "classic games" scope)
+Reskins of the required lightweight formats, themed to the setting:
+
+| Classic format | ADWA reskin | Flavor |
+|---|---|---|
+| Tic Tac Toe | **Fortress Siege** | Claim 3 watchtowers in a row on a fortress wall grid |
+| Connect Four | **Mereb Crossing** | Drop banners into river columns to connect four before the flood |
+| Memory Match | **War Council** | Flip scout-report tiles to match generals to their provinces |
+| Rock–Paper–Scissors | **Spear · Shield · Rifle** | Fast-round wagering mini-game between chess matches |
+
+All Mini-Battles share the same matchmaking, wallet, and rewards backbone as Adwa Chess, so they double as quick warm-up/wagering games while a chess match is queued.
+
+---
+
+## 4. Real-Time Multiplayer & Matchmaking
+
+- **Socket.IO** rooms per match; server-authoritative game state (no client can submit an illegal move — validated server-side with `chess.js` or a custom engine).
+- **Matchmaking lobby:** queue by mode (Chess / Mini-Battle), time control, and rank band; Redis-backed matchmaking queue with skill-based pairing (Elo/Glicko-2).
+- **Room lifecycle:** `waiting → matched → in_progress → completed → archived`, broadcast via Socket.IO events (`room:update`, `move:made`, `clock:tick`, `match:ended`).
+- **Reconnection handling:** grace-period token lets a disconnected player rejoin the same room within 60s without forfeiting.
+- **Spectator Mode:** read-only Socket.IO channel broadcasting board state + move list + live chat to unlimited viewers per room; spectators can react with emoji "war drums" but cannot influence play.
+- **Match Replay:** every match's move list + timestamps stored in MongoDB, replayable move-by-move on a shared timeline UI.
+
+---
+
+## 5. Live Communication
+
+- **Room chat:** per-match text channel (players + spectators), moderated with a lightweight profanity filter.
+- **Friend system:** send/accept friend requests, see online status, direct-challenge a friend into a private room.
+- **Live activity feed:** toast notifications for friend match starts, house-rank promotions, badge unlocks, and tournament calls.
+
+---
+
+## 6. Web3 Player Identity & Verification
+
+- **Wallet connect** (MetaMask / WalletConnect) creates or links a **Player Profile NFT** — a soulbound (non-transferable) token containing: player ID, chosen house, join date, and a mutable metadata pointer for stats.
+- **Cryptographic match verification:** at match end, the server computes a **match result hash**:
+  `hash = keccak256(matchId + player1Addr + player2Addr + winnerAddr + moveListHash + timestamp)`
+  This hash, along with `matchId`, `winner`, and `timestamp`, is written on-chain (or to a simulated ledger contract for the prototype) so results are publicly auditable and tamper-evident without exposing full game data on-chain (gas-efficient).
+- **Verification flow:** any player can re-derive the hash client-side from the public match replay and compare it to the on-chain record to confirm no result tampering occurred.
+
+### Sample Solidity skeleton
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+contract AdwaMatchRegistry {
+    struct MatchRecord {
+        address winner;
+        address loser;
+        bytes32 resultHash;
+        uint256 timestamp;
+    }
+
+    mapping(bytes32 => MatchRecord) public matches; // matchId => record
+    mapping(address => uint256) public wins;
+    mapping(address => uint256) public activityPoints;
+
+    event MatchRecorded(bytes32 indexed matchId, address indexed winner, address indexed loser, bytes32 resultHash);
+    event BadgeIssued(address indexed player, string badgeId);
+
+    function recordMatch(
+        bytes32 matchId,
+        address winner,
+        address loser,
+        bytes32 resultHash
+    ) external {
+        require(matches[matchId].timestamp == 0, "Match already recorded");
+        matches[matchId] = MatchRecord(winner, loser, resultHash, block.timestamp);
+        wins[winner] += 1;
+        activityPoints[winner] += 10;
+        activityPoints[loser] += 3;
+        emit MatchRecorded(matchId, winner, loser, resultHash);
+    }
+}
+```
+*(Prototype note: on a testnet or simulated chain, `recordMatch` can be called by a trusted backend signer immediately after server-side match validation.)*
+
+---
+
+## 7. Digital Collectibles & Rewards
+
+**Achievement Badges** — ERC-1155 NFTs modeled on real Ethiopian imperial honors, awarded automatically by activity-point thresholds:
+
+| Badge | Historical basis | Unlock condition |
+|---|---|---|
+| Star of the Highlands | Order of the Star of Ethiopia | 10 ranked wins |
+| Menelik's Seal | Order of Menelik II | 50 ranked wins |
+| Taytu's Crown | Honoring Empress Taytu's strategic role | Win 5 matches without losing a piece advantage |
+| Lion's Vanguard | Imperial Ethiopian standard | Reach top 100 leaderboard |
+| Unbroken Line | Commemorates the Adwa coalition | Win a match after being in a losing position (comeback win) |
+
+- **Tokenized rewards:** seasonal "War Chest" reward pools distribute a platform token (`$ADWA`, simulated for prototype) to top leaderboard finishers and tournament winners.
+- **Badge inventory screen:** wallet-connected gallery of owned badges with rarity tiers (Bronze / Silver / Gold / Imperial).
+
+---
+
+## 8. Rank & Title System
+
+Leaderboard placement and activity points move a player up a historically grounded title ladder:
+
+`Ato/Woizero → Grazmach → Fitawrari → Dejazmach → Ras → Negus → Negus Negast`
+
+Each title unlocks a board border, name-tag flair, and a small matchmaking-queue priority perk (cosmetic + convenience only — never a gameplay advantage in ranked chess).
+
+---
+
+## 9. Leaderboard System
+
+- **Global leaderboard:** Elo/Glicko-2 rating, wins, win-rate, current title.
+- **House leaderboard:** aggregate scoring per house (Shewa vs Tigray vs Gojjam vs Wollo vs Harar) — a live "which province leads the coalition this season" meta-competition.
+- **Transparency:** every listed match result links to its on-chain hash for public verification.
+
+---
+
+## 10. Technical Matrix
+
+| Layer | Stack |
+|---|---|
+| Frontend | Next.js (App Router), Tailwind, wagmi/viem for wallet connect |
+| Real-time | Socket.IO |
+| Backend | Node.js (Express or Fastify) |
+| Game logic | chess.js (server-authoritative validation) |
+| Database | MongoDB (profiles, match history, badges) |
+| Cache/Queue | Redis (matchmaking queue, live room state, pub/sub for scaling Socket.IO) |
+| Blockchain | Solidity smart contract (testnet, e.g. Polygon Amoy or Base Sepolia) + ethers.js backend signer |
+| Auth | Wallet-based SIWE (Sign-In With Ethereum) session, JWT for API |
+
+### Core MongoDB collections
+```
+players       { walletAddress, houseId, displayName, title, eloRating, activityPoints, badges[], createdAt }
+matches       { matchId, mode, players[2], winner, moveList[], resultHash, startedAt, endedAt }
+rooms (redis) { roomId, status, players[], spectators[], clockState }
+badges        { badgeId, playerId, tier, txHash, issuedAt }
+leaderboards  { scope: "global"|"house", houseId?, rankings[] }  // recomputed on cron
+```
+
+---
+
+## 11. Visual & Brand Direction
+
+- **Palette:** Ethiopian tricolor (deep green, gold, red) grounded against a dark parchment/obsidian background — avoids looking like a flag graphic, reads as "royal war-council at night."
+- **Accent metals:** bronze and antique gold for rank/badge UI, distinguishing ADWA from cooler jewel-tone palettes used elsewhere in your portfolio.
+- **Typography:** display headers in a sturdy serif (e.g. Cinzel or Marcellus) for imperial gravity; body text in a clean geometric sans; move-notation/coordinates in a monospace (e.g. IBM Plex Mono) for the "tactical dispatch" feel.
+- **Motifs:** topographic highland contour lines, hand-drawn coalition banners, subtle Ge'ez numeral watermarks on match-history timestamps.
+- **Board design:** default board uses carved-stone/parchment squares; each house skin re-textures pieces (e.g. Shewa = gold lion iconography, Tigray = bronze spear iconography) without changing piece silhouettes, keeping high-level readability identical across skins.
+
+---
+
+## 12. MVP Prototype Scope
+
+**Phase 1 (playable core):**
+1. Wallet connect + Player Profile NFT mint (soulbound)
+2. House selection screen
+3. Matchmaking lobby → real-time Adwa Chess (Classical rules only, no Legendary Mode yet)
+4. Match completion → result hash generated → recorded on testnet contract
+5. Basic leaderboard (global only)
+6. Match replay viewer
+
+**Phase 2:**
+7. Spectator mode + live chat
+8. Friend system + private challenges
+9. Badge issuance (ERC-1155) tied to activity points
+10. House leaderboard + title ladder
+
+**Phase 3:**
+11. Legendary Mode abilities
+12. Mini-Battles (Fortress Siege, Mereb Crossing, War Council, Spear·Shield·Rifle)
+13. Seasonal War Chest token rewards + tournament bracket system
+
+---
+
+## 13. Master Build Prompt (copy-paste ready)
+
+> Build **ADWA**, a real-time multiplayer Web3 chess arena themed around Ethiopia's 1896 Battle of Adwa and its coalition of historic provincial houses (Shewa, Tigray, Gojjam, Wollo, Harar). Use Next.js (App Router) for the frontend, Node.js + Socket.IO for real-time server-authoritative chess (validate moves with chess.js, never trust the client), MongoDB for persistent player/match/badge data, and Redis for matchmaking queues and live room state. Players connect a wallet (SIWE auth) to mint a soulbound Player Profile NFT and choose one of the five houses as a cosmetic skin set (board texture, piece art, banner colors) layered over identical, fair chess rules. On match completion, generate a deterministic result hash (matchId + both addresses + winner + move-list hash + timestamp) and record matchId/winner/timestamp/hash on a Solidity smart contract deployed to a testnet, so any player can independently re-derive and verify the hash from the public replay. Include: a matchmaking lobby with skill-based pairing, live spectator mode with read-only board broadcast and chat, a friend/challenge system, a global leaderboard plus a per-house leaderboard, a historically-grounded rank/title ladder (Ato → Grazmach → Fitawrari → Dejazmach → Ras → Negus → Negus Negast), and ERC-1155 achievement badges modeled on real Ethiopian imperial honors (Star of the Highlands, Menelik's Seal, Taytu's Crown, Lion's Vanguard, Unbroken Line) unlocked by win/activity thresholds and viewable in a wallet-connected badge inventory. Visual direction: dark obsidian/parchment background, Ethiopian tricolor (deep green, gold, red) with bronze/antique-gold accent metals, Cinzel or Marcellus for display type, a clean geometric sans for body text, IBM Plex Mono for move notation, and topographic highland-contour motifs. Keep the invading colonial force entirely out of playable content — the platform's tone is Ethiopian coalition rivalry and unity, never re-staging the invasion itself. Ship an MVP covering wallet connect, house selection, real-time ranked chess matchmaking, on-chain (or testnet-simulated) match verification, replay viewer, and a basic leaderboard, before layering spectator mode, badges, house rankings, Legendary Mode abilities, and the four Mini-Battle reskins (Fortress Siege / Mereb Crossing / War Council / Spear·Shield·Rifle).
+
+---
+
+*ADWA — where the board is the battlefield, and every player marches for their house under one banner.*

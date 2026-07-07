@@ -1,0 +1,2 @@
+- [ADWA queryKey pattern](adwa-querykey-pattern.md) — orval-generated hooks require explicit queryKey in query options (TanStack Query v5 strict typing)
+- [ADWA matchmaking](adwa-matchmaking-pattern.md) — AI opponent player must be created via API before createMatch; backend enforces both players exist in DB
